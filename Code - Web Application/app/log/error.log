@@ -1,0 +1,5 @@
+2024-05-08 19:25:08,389 INFO: Logger configured successfully. [in /Users/nayelyenikeyev/Documents/Visual Studio Code work folder/projectai/app/__init__.py:45]
+2024-05-08 19:25:08,748 INFO: Database initialized. [in /Users/nayelyenikeyev/Documents/Visual Studio Code work folder/projectai/run.py:100]
+2024-05-08 19:25:08,748 INFO: The application is running. [in /Users/nayelyenikeyev/Documents/Visual Studio Code work folder/projectai/run.py:101]
+2024-05-08 19:25:08,748 INFO: Starting the unified watchdog thread... [in /Users/nayelyenikeyev/Documents/Visual Studio Code work folder/projectai/run.py:92]
+2024-05-08 19:25:08,749 INFO: Monitoring userdata for new files... [in /Users/nayelyenikeyev/Documents/Visual Studio Code work folder/projectai/run.py:83]

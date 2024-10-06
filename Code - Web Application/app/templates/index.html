@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crop Disease AI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.24/datatables.min.css"/>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .welcome-container {
+            width: 100%;
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            text-align: left;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: block;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-success { color: green; }
+        .flash-error { color: red; }
+        .selected-row { background-color: #8d9c80 !important; }
+    
+        .section-container {
+            margin-bottom: 40px;
+        }
+        
+        .title {
+            margin-bottom: 40px;
+        }
+        
+        .grid-container {
+            padding-left: 0px;
+        }
+        .progression-grids-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+        }
+
+        .grid-row {
+            flex: 1;
+            display: flex;
+            gap: 1px;
+        }
+
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #ccc;
+        }
+
+        .image-preview-box {
+            width: 300px;
+            height: 300px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid #000;
+        }
+
+        /* Adjusting the layout for the Images Section with flexbox */
+        .images-section-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .images-section {
+            flex: 1; /* Allows the table to take up the available space */
+            padding-right: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container, .images-section {
+                padding-left: 0;
+            }
+            .image-preview-box, .images-section {
+                margin-left: 0;
+                margin-top: 20px;
+                width: 100%;
+            }
+            .images-section-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid welcome-container">
+    <p>Welcome, {{ current_user.name }}! <a href="{{ url_for('auth.logout') }}">Logout</a></p>
+
+</div>
+
+<div class="container">
+    <!-- Flash Messages -->
+    <div class="flash-messages" id="flashMessages"></div>
+
+    {% if current_user.is_authenticated %}
+    <!-- Authenticated User Content -->
+
+    <!-- Fields Table -->
+    <div class="section-container">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addFieldModal">Add Field</button>
+        <table class="table table-striped" id="fieldsTable">
+            <thead>
+            <tr>
+                <th>Field ID</th>
+                <th>Field Name</th>
+                <th>User Name</th>
+                <th>Date Created</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Dynamically populated fields will go here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Disease progression -->
+    <div class="section-container">
+        <!-- <h2>Disease progression</h2>> -->
+        <div id="head" class="title"></div>
+        <div id="ContainerProgressionGrids" class="progression-grids-container">
+            <!-- Date grids will be dynamically generated here -->
+        </div>
+    </div>
+
+    <!-- Batches Table -->
+    <div id="batchesSection" class="section-container">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#uploadBatchModal">Upload Batch</button>
+        <table class="table table-striped" id="batchesTable">
+            <thead>
+            <tr>
+                <th>Batch ID</th>
+                <!--<th>x grid</th> -->
+                <!--<th>y grid</th> -->
+                <th>Image Quantity</th>
+                <th>Images Taken</th>
+                <th>User Name</th>
+                <th>Date Uploaded</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Batches data will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Grid Section with Image Preview Box -->
+    <div id="gridSection" class="section-container d-flex justify-content-between">
+        <div class="grid-container">
+            <!-- <h2>Grid</h2> -->
+            <div id="gridContainer">
+                <!-- The grid will be dynamically generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Images Section with Table Image Preview Box -->
+    <div id="imagesSection" class="section-container images-section-container">
+        <div class="images-section">
+            <h2>Images</h2>
+            <table class="table table-striped" id="imagesTable">
+                <thead>
+                <tr>
+                    <th>Image ID</th>
+                    <th>File Name</th>
+                    <th>Label</th>
+                    <th>Healthy</th>
+                    <th>Rice Blast</th>
+                    <th>Brown Spot</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- Images data will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Login Form -->
+    <!-- Form HTML here -->
+    {% endif %}
+    </div>
+    
+    <!-- Modals -->
+    <!-- Add Field Modal -->
+    <div class="modal fade" id="addFieldModal" tabindex="-1" role="dialog" aria-labelledby="addFieldModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addFieldModalLabel">Add Field</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFieldForm">
+                        <div class="form-group">
+                            <label for="fieldName">Field Name</label>
+                            <input type="text" class="form-control" id="fieldName" name="name" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Ok</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Batch Modal -->
+
+    <div class="modal fade" id="uploadBatchModal" tabindex="-1" role="dialog" aria-labelledby="uploadBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadBatchModalLabel">Upload Batch</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadBatchForm" method="POST" action="{{ url_for('main.upload_batch') }}" enctype="multipart/form-data">
+                        <input type="hidden" id="fieldId" name="field_id">
+                        <div class="form-group">
+                            <label for="images">Select Images</label>
+                            <input type="file" class="form-control-file" id="images" name="images" multiple required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>                
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.24/datatables.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+$(document).ready(function() {
+
+    var currentBatchId = null;
+
+    // Initial call to populate "Fields" table on page load
+    updateFieldsTable();
+
+    // Initially hide the Batches and Images sections
+    // $('#batchesSection').hide();
+    // $('#imagesSection').hide();
+
+    // Event listener for clicking a row in the "Fields" table
+    $('table#fieldsTable tbody').on('click', 'tr', function() {
+        
+        // Remove 'selected-row' class from all rows to reset the selection
+        $('table#fieldsTable tbody tr').removeClass('selected-row');
+
+        // Add 'selected-row' class to the clicked row
+        $(this).addClass('selected-row');
+
+        // Get the field ID from the clicked row's data attribute
+        var fieldId = $(this).data('field-id');
+
+        // Set the hidden input's value in the "Upload Batch" form with the selected fieldId
+        $('#uploadBatchForm #fieldId').val(fieldId);
+
+        // Load batches for the selected field
+        loadBatchesForField(fieldId);
+
+        // Trigger the loading of unique batch dates and the generation of progression grids
+        loadUniqueBatchDates(fieldId);
+
+        // Clear Grid and Images sections because no batch is selected yet
+        clearGridAndImages();
+    });
+
+    // Function to clear Grid and Images sections
+    function clearGridAndImages() {
+        $('#ContainerProgressionGrids').empty();
+        $('#gridContainer').empty();
+        $('#imagesTable tbody').empty();
+    }
+
+    // Event listener for clicking a row in the "Batches" table
+    $('table#batchesTable tbody').on('click', 'tr', function() {
+        $('table#batchesTable tbody tr').removeClass('selected-row');
+        $(this).addClass('selected-row');
+
+        var batchId = $(this).data('batch-id');
+        var xGrid = $(this).data('x-grid');
+        var yGrid = $(this).data('y-grid');
+        
+        loadImagesForBatch(batchId, xGrid, yGrid);
+    });
+
+    // Function to add a flash message
+    function addFlashMessage(message, type) {
+        var classType = type === 'success' ? 'flash-success' : 'flash-error';
+        var messageElement = $('<div>').addClass(classType).text(message);
+        $('#flashMessages').empty().append(messageElement);
+        setTimeout(function() { $('#flashMessages').empty(); }, 5000);
+    }
+    
+    // Load and update the "Fields" table
+    function updateFieldsTable(selectFieldId = null) {
+        $.ajax({
+            type: 'GET',
+            url: "{{ url_for('main.get_fields') }}",
+            success: function(response) {
+                var fieldsTableBody = $('table#fieldsTable tbody');
+                fieldsTableBody.empty();
+                response.forEach(function(field) {
+                    var row = `<tr data-field-id="${field.field_id}">
+                        <td>${field.field_id}</td>
+                        <td>${field.field_name}</td>
+                        <td>${field.user_name}</td>
+                        <td>${field.date_created}</td>
+                    </tr>`;
+                    fieldsTableBody.append(row);
+                });
+
+                // Check if there's a field ID to select after updating
+                 if (selectFieldId) {
+                    // Trigger click event on the newly added row to select it
+                    $("tr[data-field-id='" + selectFieldId + "']").click();
+                }
+            },
+            error: function(response) {
+                console.error("Error fetching fields: ", response);
+            }
+        });
+    }
+
+    $('#addFieldForm').on('submit', function(e) {
+        e.preventDefault();
+        var formData = $(this).serialize();
+
+        $.ajax({
+            type: 'POST',
+            url: "{{ url_for('main.add_field') }}",
+            data: formData,
+            success: function(response) {
+                addFlashMessage(response.message, response.success ? 'success' : 'error');
+                $('#addFieldModal').modal('hide');
+
+                if (response.success) {
+                    updateFieldsTable(response.newFieldId);
+                }
+            },
+            error: function(response) {
+                addFlashMessage('An error occurred. Please try again.', 'error');
+            }
+        });
+    });
+
+    // Function to load batches for a selected field
+    function loadBatchesForField(fieldId, selectBatchId = null) {
+        $.ajax({
+            type: 'GET',
+            url: `{{ url_for('main.get_batches', field_id=0) }}`.replace('0', fieldId),
+            success: function(batches) {
+                var batchesTableBody = $('#batchesTable tbody');
+                batchesTableBody.empty();
+                batches.forEach(function(batch) {
+                    var row = `<tr data-batch-id="${batch.batch_id}" data-x-grid="${batch.x_grid}" data-y-grid="${batch.y_grid}">
+                        <td>${batch.batch_id}</td>
+                        <td>${batch.img_qty}</td>
+                        <td>${batch.date_taken}</td>
+                        <td>${batch.user_name}</td>
+                        <td>${batch.date_uploaded}</td>
+                    </tr>`;
+                    batchesTableBody.append(row);
+                });
+                // If no specific batch is to be selected, ensure the Grid and Images sections are cleared
+                if (!selectBatchId) {
+                    clearGridAndImages();
+                }
+                // Check if there's a batch ID to select after updating
+                if (selectBatchId) {
+                    currentBatchId = selectBatchId;
+                    startPollingForBatchUpdates(currentBatchId);
+                    setTimeout(function() {
+                        // Wait for the DOM to update before triggering click
+                        $("tr[data-batch-id='" + selectBatchId + "']").click();
+                    }, 100);
+                }
+            },
+            error: function() {
+                alert("Failed to load batches.");
+                clearGridAndImages();
+            }
+        });
+    }
+
+    $('#uploadBatchForm').submit(function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            type: 'POST',
+            url: "{{ url_for('main.upload_batch') }}",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                addFlashMessage(response.message, response.success ? 'success' : 'error');
+                if(response.success) {
+                    $('#uploadBatchModal').modal('hide');
+                    loadBatchesForField(response.newBatch.field_id, response.newBatch.batch_id);
+                    loadUniqueBatchDates(response.newBatch.field_id);
+                }
+            },
+            error: function(xhr) {
+                var errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'An unknown error occurred.';
+                addFlashMessage(errorMessage, 'error');
+            }
+        });
+    });
+
+    function uploadFilesToGCS(signedUrls, field_id, batch_id) {
+        let uploadCount = 0;
+        signedUrls.forEach(fileInfo => {
+            const file = $('#uploadBatchForm').find('input[type="file"]').get(0).files[uploadCount];
+            var xhr = new XMLHttpRequest();
+            xhr.open('PUT', fileInfo.signedUrl, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    console.log('File uploaded:', fileInfo.filename);
+                    uploadCount++;
+                    if (uploadCount === signedUrls.length) {
+                        postUploadComplete(field_id, batch_id);
+                    }
+                } else {
+                    console.error('Upload error for:', fileInfo.filename, xhr.responseText);
+                }
+            };
+            xhr.onerror = function() {
+                console.error('Upload error, could not connect to server for:', fileInfo.filename);
+            };
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.send(file);
+        });
+    }
+
+    function postUploadComplete(field_id, batch_id) {
+        $.ajax({
+            type: 'POST',
+            url: "{{ url_for('main.upload_complete') }}",
+            contentType: 'application/json',
+            data: JSON.stringify({ field_id: field_id, batch_id: batch_id }),
+            success: function(response) {
+                addFlashMessage(response.message, 'success');
+                $('#uploadBatchModal').modal('hide');
+                loadBatchesForField(field_id, batch_id);
+                loadUniqueBatchDates(field_id);
+            },
+            error: function(xhr) {
+                console.error('Error notifying server after upload:', xhr.responseText);
+                addFlashMessage('Error completing upload process.', 'error');
+            }
+        });
+    }
+
+    // Function to build the grid visualization
+    function buildGrid(xGrid, yGrid, images) {
+        const gridContainer = $('#gridContainer');
+        gridContainer.empty();
+
+        const totalCells = xGrid * yGrid;
+        let imageIndex = 0;
+
+        // Create rows and cells based on xGrid and yGrid
+        for(let row = 0; row < xGrid; row++) {
+            const rowElement = $('<div>').addClass('grid-row');
+            for(let col = 0; col < yGrid; col++) {
+                const cellElement = $('<div>').addClass('grid-cell');
+
+                // If there's an image for this cell, set its background color
+                if(images[imageIndex]) {
+                    const label = images[imageIndex].label;
+                    const color = labelColorMapping(label);
+                    cellElement.css('background-color', color);
+                    imageIndex++;
+                }
+                rowElement.append(cellElement);
+            }
+            gridContainer.append(rowElement);
+        }
+    }
+
+    // Function to load and display images for the selected batch and create an interactive grid visualization
+    function loadImagesForBatch(batchId, xGrid, yGrid) {
+        $.ajax({
+            type: 'GET',
+            url: `{{ url_for('main.get_images', batch_id=0) }}`.replace('0', batchId),
+            success: function(images) {
+                const imagesTableBody = $('#imagesTable tbody');
+                imagesTableBody.empty();
+
+                images.forEach(function(image) {
+                    const healthy = image.healthy !== null ? image.healthy : "-";
+                    const rice_blast = image.rice_blast !== null ? image.rice_blast : "-";
+                    const brown_spot = image.brown_spot !== null ? image.brown_spot : "-";
+
+                    const row = `<tr>
+                        <td>${image.image_id}</td>
+                        <td>${image.filename}</td>
+                        <td>${image.label}</td>
+                        <td>${healthy}</td>
+                        <td>${rice_blast}</td>
+                        <td>${brown_spot}</td>
+                    </tr>`;
+                    imagesTableBody.append(row);
+                });
+
+                // Call buildGrid with the xGrid and yGrid values
+                buildGrid(xGrid, yGrid, images);
+            },
+            error: function(error) {
+                console.error('Error loading images:', error);
+            }
+        });
+    }
+
+    // Function to load unique batch dates for the selected field
+    function loadUniqueBatchDates(fieldId) {
+        console.log("Loading unique batch dates for field ID:", fieldId);
+        $.ajax({
+            type: 'GET',
+            url: `/main/get_unique_batch_dates/${fieldId}`,
+            success: function(dates) {
+                console.log("Received dates:", dates);
+                
+                if (dates.length > 1) {
+                    generateDiseaseProgressionGrids(fieldId, dates);
+                } else {
+                    $('#head').empty();
+                    $('#ContainerProgressionGrids').empty();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error loading unique batch dates. Status:", status, "Error:", error, "Response:", xhr.responseText);
+            }
+        });
+    }
+
+    // Function to generate grids based on dates
+    async function generateDiseaseProgressionGrids(fieldId, dates) {
+        
+        // Dynamically create and append the header only when this function is called
+        const head = $('#head'); 
+        head.empty();
+        $('#head').append(`<div id="head" class="title"><h3>Disease progression</h3></div>`);
+        
+        console.log("Generating grids for dates:", dates);
+        const container = $('#ContainerProgressionGrids');
+        container.empty();
+
+        // Sort dates in ascending order
+        dates.sort(function(a, b) {
+            return new Date(a) - new Date(b);
+        });
+
+        // Iterate through each date and make AJAX calls in sequence
+        for (let date of dates) {
+            let requestURL = `/main/get_images_by_date?field_id=${fieldId}&date=${date}`;
+            console.log("Processing date:", date, "with URL:", requestURL);
+            
+            try {
+                let response = await $.ajax({
+                    type: 'GET',
+                    url: requestURL
+                });
+                console.log(`Response received for date ${date}:`, response);
+                
+                const { images, xGrid, yGrid } = response;
+                if (images && images.length > 0) {
+                    const gridId = `progressionGrid-${date.replace(/-/g, '')}`;
+                    console.log(`Appending grid container for date ${date} with ID ${gridId}`);
+                    $('#ContainerProgressionGrids').append(`<div id="${gridId}" class="grid-container"><h5>${date}</h5></div>`);
+                    buildGridForDate(xGrid, yGrid, images, gridId);
+                } else {
+                    console.log(`No images found for date ${date}.`);
+                }
+            } catch (error) {
+                console.error(`Error fetching images for date ${date}; Error:`, error);
+            }
+        }
+    }
+
+    function buildGridForDate(xGrid, yGrid, images, gridId) {
+        const gridContainer = $(`#${gridId}`);
+        console.log(`Building grid for ${gridId} with images count: ${images.length}`);
+
+        // Generate rows and cells based on xGrid and yGrid
+        for (let row = 1; row <= xGrid; row++) {
+            const rowElement = $('<div>').addClass('grid-row');
+            for (let col = 1; col <= yGrid; col++) {
+                const cellElement = $('<div>').addClass('grid-cell');
+                // Data attribute for cell index starts from 1
+                cellElement.attr('data-cell-index', (row - 1) * yGrid + col);
+                rowElement.append(cellElement);
+            }
+            gridContainer.append(rowElement);
+        }
+
+        // Map images to cells based on the 'order' attribute
+        images.forEach(image => {
+            const targetCell = gridContainer.find(`[data-cell-index='${image.order}']`);
+            console.log(`Image order: ${image.order}, Target cell:`, targetCell);
+            if (targetCell.length > 0) {
+                const color = labelColorMapping(image.label);
+                console.log(`Setting color ${color} for image with order ${image.order}`);
+                targetCell.css('background-color', color);
+            } else {
+                console.error(`No cell found for image order: ${image.order}`);
+            }
+        });
+    }
+
+    // Function to map labels to colors
+    function labelColorMapping(label) {
+        switch(label) {
+            case 'no': return '#000000'; // black
+            case 'predicting': return '#c93eb2'; // violet
+            case 'Healthy': return '#008000'; // green
+            case 'Rice Blast': return '#E50000'; // red
+            case 'Brown Spot': return '#85521D'; // brown
+            default: return '#808080'; // grey
+        }
+    }
+
+
+    });
+
+    // Function to start polling for updates on the current batch
+    function startPollingForBatchUpdates(batchId) {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(function() {
+            checkForBatchUpdates(batchId);
+        }, 2000);
+    }
+
+    function checkForBatchUpdates(batchId) {
+        $.ajax({
+            type: 'GET',
+            url: `/main/check_batch_update/${batchId}`,
+            success: function(response) {
+                if (response.updated) {
+                    loadImagesForBatch(batchId, response.xGrid, response.yGrid);
+                }
+            },
+            error: function() {
+                console.error("Failed to check for batch updates.");
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>

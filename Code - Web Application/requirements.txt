@@ -1,0 +1,15 @@
+Flask==3.0.2
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+gunicorn==22.0.0
+SQLAlchemy==2.0.28
+Werkzeug==3.0.1
+google-cloud-storage==2.16.0
+google-auth==2.29.0
+requests==2.31.0
+google-cloud-pubsub==2.21.1
+google-cloud-secret-manager==2.20.0
+pymysql
+cloud-sql-python-connector
+google-cloud-logging
+google-auth

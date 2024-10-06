@@ -1,0 +1,5 @@
+pandas==2.2.1
+google-cloud-storage==2.16.0
+earthengine-api==0.1.397
+google-cloud-pubsub==2.10.0
+ordereddict
